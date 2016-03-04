@@ -1,0 +1,4 @@
+<src/test.*>: package(gsl)
+<src/bt.*>: package(cmdliner)
+true: bin_annot
+true: annot

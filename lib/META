@@ -1,0 +1,4 @@
+description = "bentov - online approximation of histograms"
+version = "1.0"
+archive(byte) = "bentov.cma"
+archive(native) = "bentov.cmxa"
