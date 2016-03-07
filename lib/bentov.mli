@@ -41,9 +41,22 @@ val merge : histogram list -> int -> histogram
    in [h_list], whose size is no bigger than [max_bins] *)
 
 exception TooDense
-exception Empty
 
 val uniform : histogram -> int -> float list
+(* [uniform hist num_intervals] returns estimates of the quantiles of
+   the distribution represented by histogram [hist]. The quantiles are
+   associated with the boundaries of [num_interval] intervals, in
+   ascending order.  For example, [uniform hist 4] returns an estimate
+   of the interquartile range, consisting of the 0-th percentile
+   (minimum), 25-th percentile, 50-th percentile (median), 75-th
+   percentile, and 100-th percentile (maximum). [uniform] can raise
+   [TooDense] if the distribution cannot support as many as
+   [num_intervals] intervals. *)
 
 val mean : histogram -> float
+(* [mean hist] returns an estimate of the mean of the distribution
+   represented by [hist] *)
+
 val mean_variance : histogram -> float * float
+(* [mean_stdev hist] returns estimates of the mean and standard
+   deviation of the distribution represented bh [hist] *)
