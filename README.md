@@ -14,3 +14,9 @@ echo "" | awk '{ for ( i=0 ; i < 1e6 ; i++ ) { print rand() } }' | ./bt.native -
 
 In this example, the size of the approximating histogram is 20.  For
 additional details, `bt.native --help` .
+
+To build and install:
+
+```
+make all; make install
+```
