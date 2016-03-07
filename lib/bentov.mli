@@ -57,6 +57,6 @@ val mean : histogram -> float
 (* [mean hist] returns an estimate of the mean of the distribution
    represented by [hist] *)
 
-val mean_variance : histogram -> float * float
+val mean_stdev : histogram -> float * float
 (* [mean_stdev hist] returns estimates of the mean and standard
    deviation of the distribution represented bh [hist] *)

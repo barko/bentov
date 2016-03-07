@@ -320,7 +320,7 @@ let mean { bins; total_count } =
     ) 0.0 bins in
     m /. (float total_count)
 
-let mean_variance histogram =
+let mean_stdev histogram =
   let mean = mean histogram in
   let v = List.fold_left (
       fun sum { center; count } ->
@@ -328,5 +328,6 @@ let mean_variance histogram =
         sum +. diff *. diff *. (float count)
     ) 0.0 histogram.bins
   in
-  mean, v /. (float histogram.total_count)
+  let stdev = sqrt (v /. (float histogram.total_count)) in
+  mean, stdev
 

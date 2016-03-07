@@ -60,15 +60,15 @@ let print_uniform hist num_intervals =
   ) u
 
 
-let print_mean_variance hist =
-  let m, v = mean_variance hist in
-  pr "mean=%+.5e\nvariance=%+.5e\n" m v
+let print_mean_stdev hist =
+  let m, sd = mean_stdev hist in
+  pr "mean=%+.5e\nstdev=%+.5e\n" m sd
 
 
-let main max_bins path_opt p_histogram p_mean_variance p_uniform =
+let main max_bins path_opt p_histogram p_mean_stdev p_uniform =
   let hist = histogram_of_file path_opt max_bins in
-  if p_mean_variance then (
-    print_mean_variance hist;
+  if p_mean_stdev then (
+    print_mean_stdev hist;
     pr "\n"
   );
 
@@ -107,9 +107,9 @@ let _ =
            info ["i"; "input"] ~docv:"PATH" ~doc)
     in
 
-    let print_mean_variance =
+    let print_mean_stdev =
       let doc = "use the histogram to compute and print the mean and \
-                 variance" in
+                 standard deviation" in
       Arg.(value & flag & info ["s"; "stats"] ~doc)
     in
 
@@ -128,7 +128,7 @@ let _ =
           $ max_bins
           $ path
           $ print_histogram
-          $ print_mean_variance
+          $ print_mean_stdev
           $ print_uniform
          ), Term.info "bt" ~doc
   in
