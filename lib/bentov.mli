@@ -36,6 +36,11 @@ val add : float -> histogram -> histogram
 (* [add v h] adds a value to [v] to histogram [h], returning the
    updated histogram *)
 
+val addc : float -> int -> histogram -> histogram
+(* [addc v c h] adds a value to [v] to histogram [h] with count [c],
+   returning the updated histogram.  It is equivalent to calling [add
+   v h] [c] times. *)
+
 val merge : histogram list -> int -> histogram
 (* [merge h_list max_bins] creates a new histogram from the histograms
    in [h_list], whose size is no bigger than [max_bins] *)

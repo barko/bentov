@@ -193,6 +193,18 @@ let merge h_list max_bins =
     total_count;
     range }
 
+(* add a value with a count; equivalent to calling [add value hist]
+   [count] times *)
+let addc value count hist =
+  let singleton = {
+    bins = [{ center = value ; count }];
+    total_count = count;
+    range = Some (value, value);
+    num_bins = 1;
+    max_bins = 1; (* benign *)
+  } in
+  merge [hist; singleton] hist.max_bins
+
 let pos_quadratic_root ~a ~b ~c =
   if a = 0.0 then
     -.c /. b
