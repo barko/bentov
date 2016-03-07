@@ -332,7 +332,6 @@ let mean { bins; total_count } =
     ) 0.0 bins in
     m /. (float total_count)
 
-exception Empty
 let mean_stdev histogram =
   if histogram.total_count = 0 then
     raise Empty
