@@ -1,5 +1,5 @@
 opam-version: "2.0"
-synopsis: "approximate 1D histograms"
+synopsis: "Approximate 1D histograms"
 description:
   "Bentov implements an algorithm which approximates a 1D histogram in a streaming fashion."
 maintainer: ["mika@illouz.net"]
