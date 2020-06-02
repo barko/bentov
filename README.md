@@ -9,14 +9,15 @@ distribution.
 For example, to approximate 10 quantiles of 1M data in U(0,1):
 
 ```
-echo "" | awk '{ for ( i=0 ; i < 1e6 ; i++ ) { print rand() } }' | ./bt.native -n 20 -u 10
+echo "" | awk '{ for ( i=0 ; i < 1e6 ; i++ ) { print rand() } }' | ./bt -n 20 -u 10
 ```
 
 In this example, the size of the approximating histogram is 20.  For
-additional details, `bt.native --help` .
+additional details, `bt --help` .
 
 To build and install:
 
 ```
-make all; make install
+opam pin add bentov git://github.com/barko/bentov.git
+opam install bentov
 ```

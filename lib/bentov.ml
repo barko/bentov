@@ -38,8 +38,6 @@ let rec insert value = function
       let t, num_bins_is_incr = insert value t in
       h :: t, num_bins_is_incr
 
-let pr = Printf.printf
-
 let rec min_diff_index i index min_diff = function
   | a :: b :: t ->
     let diff = b.center -. a.center in
@@ -164,9 +162,9 @@ let rec reduce bins ~num_bins ~max_bins =
 
 
 let merge h_list max_bins =
-  let bins, num_bins, total_count, range = List.fold_left
+  let bins, _, total_count, range = List.fold_left
       (fun (t_bins, t_num_bins, t_total_count, t_range)
-        { bins; num_bins; total_count; range} ->
+        { bins; num_bins; total_count; range; _} ->
         let t_range =
           match t_range, range with
             | Some (t_mn, t_mx), Some (mn, mx) ->
@@ -215,6 +213,7 @@ let pos_quadratic_root ~a ~b ~c =
 exception TooDense
 exception Empty
 
+(*
 let linear_interp ~x0 ~x1 ~y0 ~y1 x =
   let delta_y = float (y1 - y0) in
   let delta_x = x1 -. x0 in
@@ -264,8 +263,10 @@ let count_at =
       | [], None -> raise Empty
       | _ -> assert false
 
+
 let pdf_at histogram x =
   (count_at histogram x) /. (float histogram.total_count)
+*)
 
 let uniform =
   let rec loop span j accu cdf =
@@ -300,7 +301,7 @@ let uniform =
 
   let rec cdf max prev_m sum_m accu = function
     | bin :: rest ->
-      let { center = p; count = m } = bin in
+      let { count = m; _ } = bin in
       let sum_m = sum_m +. 0.5 *. (float (m + prev_m)) in
       let accu = (bin, sum_m) :: accu in
       cdf max m sum_m accu rest
@@ -311,7 +312,7 @@ let uniform =
   in
   fun histogram b ->
     match histogram.bins, histogram.range with
-      | { center = p; count = m } :: rest, Some (min, max) ->
+      | _ :: _, Some (min, max) ->
         let accu = [{center = min; count = 0}, 0.0] in
         let cdf = cdf max 0 0.0 accu histogram.bins in
         let span = (float histogram.total_count) /. (float b) in
@@ -322,7 +323,7 @@ let uniform =
       | _ -> assert false
 
 
-let mean { bins; total_count } =
+let mean { bins; total_count; _ } =
   if total_count = 0 then
     raise Empty
   else

@@ -12,7 +12,6 @@
    mean-square-error between the true quantiles and [mixed], and the
    true quantiles and [merged]. *)
 
-open Bentov
 open Gsl.Randist
 
 (* draw a sample from N([mu],[sigma]^2) *)
@@ -26,7 +25,7 @@ let normal rng ~mu ~sigma =
 let quantiles list num_intervals =
   let num_intervals_f = float num_intervals in
   let array = Array.of_list list in
-  Array.sort Pervasives.compare array;
+  Array.sort Stdlib.compare array;
   let rec loop i accu =
     if i > num_intervals then
       List.rev accu
