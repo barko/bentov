@@ -213,89 +213,56 @@ let pos_quadratic_root ~a ~b ~c =
 exception TooDense
 exception Empty
 
-(*
-let linear_interp ~x0 ~x1 ~y0 ~y1 x =
-  let delta_y = float (y1 - y0) in
-  let delta_x = x1 -. x0 in
-  let slope = delta_y /. delta_x in
-  (float y0) +. slope *. (x -. x0)
+let sum =
+  let rec find_i b i sum = function
+    | ({ center = p_i; count = m_i } as bin_i) ::
+        ({ center = p_i1; _ } as bin_i1) :: t ->
+      if p_i <= b && b < p_i1 then
+        bin_i, bin_i1, sum
+      else
+        find_i b (i+1) (sum +. (float m_i)) (bin_i1 :: t)
 
-(* sample the pdf represented by the [histogram] at value [x] *)
-let count_at =
-  (* linearly interpoloate between the centers, if necessary *)
-  let rec loop x max = function
-    | bin_0 :: bin_1 :: rest ->
-      if bin_0.center <= x && x < bin_1.center then
-        linear_interp
-          ~x0:bin_0.center ~x1:bin_1.center
-          ~y0:bin_0.count ~y1:bin_1.count
-          x
-      else
-        loop x max (bin_1 :: rest)
-    | [ bin_0 ] ->
-      if max = bin_0.center then
-        if x = max then
-          float bin_0.count
-        else
-          0.0
-      else
-        linear_interp
-          ~x0:bin_0.center ~x1:max
-          ~y0:bin_0.count ~y1:0
-          x
-    | [] -> assert false
+    | _ -> raise Not_found
   in
-  fun histogram x ->
-    match histogram.bins, histogram.range with
-      | bin_0 :: _, Some (min, max) ->
-        if x < min || max < x then
-          0.0
-        else
-          (* prepend left bondary *)
-          let aug_bins =
-            if bin_0.center = min then
-              histogram.bins
-            else
-              { center = min; count = 0 } :: histogram.bins
-          in
-          loop x max aug_bins
 
-      | [], None -> raise Empty
-      | _ -> assert false
-
-
-let pdf_at histogram x =
-  (count_at histogram x) /. (float histogram.total_count)
-*)
+  fun histogram b ->
+    let {center = p_i; count = m_i}, {center = p_i1; count = m_i1 }, sum_i0 =
+      find_i b 0 0.0 histogram.bins in
+    let m_i = float m_i in
+    let m_i1 = float m_i1 in
+    let bpp = (b -. p_i) /. (p_i1 -. p_i) in
+    let m_b = m_i +. (m_i1 -. m_i) *. bpp in
+    let s = (m_i +. m_b) *. bpp /. 2. in
+    s +. sum_i0 +. m_i /. 2.
 
 let uniform =
   let rec loop span j accu cdf =
     match cdf with
-      | cdf_i :: cdf_i1 :: rest ->
-        let { center = p_i ; count = m_i }, sum_m_i  = cdf_i  in
-        let { center = p_i1; count = m_i1}, sum_m_i1 = cdf_i1 in
+    | cdf_i :: cdf_i1 :: rest ->
+      let { center = p_i ; count = m_i }, sum_m_i  = cdf_i  in
+      let { center = p_i1; count = m_i1}, sum_m_i1 = cdf_i1 in
 
-        let s = (float j) *. span in
-        if s > sum_m_i1 then
-          loop span j accu (cdf_i1 :: rest)
+      let s = (float j) *. span in
+      if s > sum_m_i1 then
+        loop span j accu (cdf_i1 :: rest)
 
-        else (
-          (* interpolate *)
-          assert ( sum_m_i <= s );
-          let d = s -. sum_m_i in
-          let a = float (m_i1 - m_i) in
-          let b = float (2 * m_i) in
-          let c = -2. *. d in
-          let z = pos_quadratic_root ~a ~b ~c in
-          let u = p_i +. (p_i1 -. p_i) *. z in
-          match accu with
-            | u_prev :: _ when u_prev = u -> raise TooDense
-            | _ ->
-              let accu = u :: accu in
-              loop span (j + 1) accu cdf
-        )
+      else (
+        (* interpolate *)
+        assert ( sum_m_i <= s );
+        let d = s -. sum_m_i in
+        let a = float (m_i1 - m_i) in
+        let b = float (2 * m_i) in
+        let c = -2. *. d in
+        let z = pos_quadratic_root ~a ~b ~c in
+        let u = p_i +. (p_i1 -. p_i) *. z in
+        match accu with
+        | u_prev :: _ when u_prev = u -> raise TooDense
+        | _ ->
+          let accu = u :: accu in
+          loop span (j + 1) accu cdf
+      )
 
-      | _ -> List.rev accu
+    | _ -> List.rev accu
 
   in
 
@@ -312,15 +279,14 @@ let uniform =
   in
   fun histogram b ->
     match histogram.bins, histogram.range with
-      | _ :: _, Some (min, max) ->
-        let accu = [{center = min; count = 0}, 0.0] in
-        let cdf = cdf max 0 0.0 accu histogram.bins in
-        let span = (float histogram.total_count) /. (float b) in
-        loop span 0 [] cdf
-      (* , List.map (fun ({ center }, c) -> center, c) cdf *)
+    | _ :: _, Some (min, max) ->
+      let accu = [{center = min; count = 0}, 0.0] in
+      let cdf = cdf max 0 0.0 accu histogram.bins in
+      let span = (float histogram.total_count) /. (float b) in
+      loop span 0 [] cdf
 
-      | [], None -> raise Empty
-      | _ -> assert false
+    | [], None -> raise Empty
+    | _ -> assert false
 
 
 let mean { bins; total_count; _ } =
