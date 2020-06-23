@@ -53,13 +53,11 @@ let histogram_of_file path_opt max_bins =
 
 let print_uniform hist num_intervals =
   let u = uniform hist num_intervals in
-  let num_intervals_f = float num_intervals in
-  let precision = truncate (ceil (log10 (float num_intervals))) in
   pr "uniform with %d intervals:\n%!" num_intervals;
-  List.iteri (
-    fun i quantile ->
-      let alpha = (float i) /. num_intervals_f in
-      pr "%0.*f %+.5e\n" precision alpha quantile
+  List.iter (
+    fun  (rank, quantile) ->
+      pr "%d/%d[=%.3f] %+.5e\n" rank num_intervals
+        ((float rank)/.(float num_intervals)) quantile
   ) u
 
 

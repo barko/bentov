@@ -210,7 +210,6 @@ let pos_quadratic_root ~a ~b ~c =
     let discriminant = b *. b -. 4. *. a *. c in
     ((sqrt discriminant) -. b) /. (2. *. a)
 
-exception TooDense
 exception Empty
 
 let sum =
@@ -236,57 +235,47 @@ let sum =
     s +. sum_i0 +. m_i /. 2.
 
 let uniform =
-  let rec loop span j accu cdf =
-    match cdf with
-    | cdf_i :: cdf_i1 :: rest ->
-      let { center = p_i ; count = m_i }, sum_m_i  = cdf_i  in
-      let { center = p_i1; count = m_i1}, sum_m_i1 = cdf_i1 in
-
-      let s = (float j) *. span in
-      if s > sum_m_i1 then
-        loop span j accu (cdf_i1 :: rest)
-
-      else (
-        (* interpolate *)
-        assert ( sum_m_i <= s );
-        let d = s -. sum_m_i in
-        let a = float (m_i1 - m_i) in
-        let b = float (2 * m_i) in
+  let rec loop span cum_sum_at_centers j accu =
+    let s = (float j) *. span in
+    match cum_sum_at_centers with
+    | (cum_sum_0, {center = p_0; count = m_0}) ::
+        ((cum_sum_1, {center = p_1; count = m_1}) as bin_1) :: rest ->
+      if s < cum_sum_0 then
+        loop span cum_sum_at_centers (j + 1) accu
+      else if cum_sum_0 <= s && s < cum_sum_1 then
+        let d = s -. cum_sum_0 in
         let c = -2. *. d in
+        let b = float (2 * m_0) in
+        let a = float (m_1 - m_0) in
         let z = pos_quadratic_root ~a ~b ~c in
-        let u = p_i +. (p_i1 -. p_i) *. z in
-        match accu with
-        | u_prev :: _ when u_prev = u -> raise TooDense
-        | _ ->
-          let accu = u :: accu in
-          loop span (j + 1) accu cdf
-      )
-
-    | _ -> List.rev accu
-
+        let u = p_0 +. (p_1 -. p_0) *. z in
+        loop span cum_sum_at_centers (j + 1) ((j, u) :: accu)
+      else
+        loop span (bin_1 :: rest) j accu
+    | [ _ ] -> List.rev accu
+    | [] -> assert false
   in
-
-  let rec cdf max prev_m sum_m accu = function
-    | bin :: rest ->
-      let { count = m; _ } = bin in
-      let sum_m = sum_m +. 0.5 *. (float (m + prev_m)) in
-      let accu = (bin, sum_m) :: accu in
-      cdf max m sum_m accu rest
-    | [] ->
-      let sum_m = sum_m +. 0.5 *. (float prev_m) in
-      let accu = ({ center = max; count = 0 }, sum_m) :: accu in
-      List.rev accu
+  let cum_sum_at_centers hist =
+    let bin, hist_rest, cum_sum =
+      match hist with
+      | ({count; _} as bin) :: rest -> bin, rest, (float count) /. 2.
+      | _ -> raise Empty
+    in
+    let _, _, cum_sum_at_centers = List.fold_left (
+      fun (cum_sum, prev_count, cum_sum_at_centers) ({count; _} as bin) ->
+        let cum_sum = cum_sum +. (float (prev_count + count)) /. 2. in
+        let cum_sum_at_centers = (cum_sum, bin) :: cum_sum_at_centers in
+        cum_sum, count, cum_sum_at_centers
+    ) (cum_sum, bin.count, [cum_sum, bin]) hist_rest in
+    List.rev cum_sum_at_centers
   in
-  fun histogram b ->
-    match histogram.bins, histogram.range with
-    | _ :: _, Some (min, max) ->
-      let accu = [{center = min; count = 0}, 0.0] in
-      let cdf = cdf max 0 0.0 accu histogram.bins in
-      let span = (float histogram.total_count) /. (float b) in
-      loop span 0 [] cdf
-
-    | [], None -> raise Empty
-    | _ -> assert false
+  fun hist b ->
+    if b < 1 then
+      raise (Invalid_argument "uniform")
+    else
+      let cum_sum_at_centers = cum_sum_at_centers hist.bins in
+      let span = (float hist.total_count) /. (float b) in
+      loop span cum_sum_at_centers 0 []
 
 
 let mean { bins; total_count; _ } =

@@ -32,10 +32,17 @@ let quantiles list num_intervals =
     else
       let q = (float i) /. num_intervals_f in
       let x = Gsl.Stats.quantile_from_sorted_data array q in
-      loop (i+1) (x :: accu)
+      loop (i+1) ((i,x) :: accu)
   in
   loop 0 []
 
+module IntMap = Map.Make(Int)
+
+let map_of_assoc assoc =
+  List.fold_left (
+    fun k_to_v (k, v) ->
+      IntMap.add k v k_to_v
+  ) IntMap.empty assoc
 
 let _ =
   (* the number of data to draw *)
@@ -82,32 +89,52 @@ let _ =
      on a grid half the size of our approximate histograms *)
   let num_intervals = q/2 in
 
-  (* compute mean-squared-error *)
-  let rec errors actual mixed merged sum_se_mixed sum_se_merged =
-    match actual, mixed, merged with
-      | actual_h :: actual_t , mixed_h :: mixed_t, merged_h :: merged_t ->
-
-        let err_mixed  = mixed_h  -. actual_h in
-        let err_merged = merged_h -. actual_h in
-
-        let sum_se_mixed  = sum_se_mixed  +. err_mixed  *. err_mixed in
-        let sum_se_merged = sum_se_merged +. err_merged *. err_merged in
-
-        errors actual_t mixed_t merged_t sum_se_mixed sum_se_merged
-
-      | [], [], [] ->
-
-        let num_intervals_1 = float (num_intervals + 1) in
-        sqrt (sum_se_mixed  /. num_intervals_1),
-        sqrt (sum_se_merged /. num_intervals_1)
-
-      | _ -> assert false
+  let error i actual mixed merged =
+    match IntMap.find_opt i actual with
+    | None -> None, None
+    | Some actual ->
+      (match IntMap.find_opt i mixed with
+       | Some mixed -> Some (actual -. mixed)
+       | None -> None
+      ),
+      (match IntMap.find_opt i merged with
+       | Some merged -> Some (actual -. merged)
+       | None -> None
+      )
   in
 
-  let mixed_q  = uniform mixed_h num_intervals in
-  let merged_q = uniform merged_h num_intervals in
-  let actual_q = quantiles data num_intervals in
+  (* compute sum of squared-errors *)
+  let rec stats i actual mixed merged mixed_stats merged_stats =
+    if i < num_intervals then
+      let mixed_err, merged_err = error i actual mixed merged in
+      let mixed_stats =
+        match mixed_err with
+        | Some err ->
+          let sum_se_mixed, n_mixed = mixed_stats in
+          sum_se_mixed +. err *. err, n_mixed + 1
+        | None -> mixed_stats
+      in
+      let merged_stats =
+        match merged_err with
+        | Some err ->
+          let sum_se_merged, n_merged = merged_stats in
+          sum_se_merged +. err *. err, n_merged + 1
+        | None -> merged_stats
+      in
+      stats (i+1) actual mixed merged mixed_stats merged_stats
+    else
+      mixed_stats, merged_stats
+  in
 
-  let err_mixed, err_merged = errors actual_q mixed_q merged_q 0.0 0.0 in
-  Printf.printf "err_mixed=%e err_merged=%e\n" err_mixed err_merged
+  let mixed_q  = map_of_assoc (uniform mixed_h num_intervals) in
+  let merged_q = map_of_assoc (uniform merged_h num_intervals) in
+  let actual_q = map_of_assoc (quantiles data num_intervals) in
+
+  let (sum_se_mixed, n_mixed), (sum_se_merged, n_merged) =
+    stats 0 actual_q mixed_q merged_q (0., 0) (0., 0) in
+
+  let err_mixed = sqrt ((sum_se_mixed) /. (float n_mixed)) in
+  let err_merged = sqrt ((sum_se_merged) /. (float n_merged)) in
+  Printf.printf "err_mixed=%e (n=%d)\nerr_merged=%e (n=%d)\n"
+    err_mixed n_mixed err_merged n_merged
 
