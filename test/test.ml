@@ -69,10 +69,10 @@ let map_of_assoc assoc =
 
 let _ =
   (* the number of data to draw *)
-  let n = int_of_string Sys.argv.(1) in
+  let n = 100_000 in
 
   (* the size of the approximate histograms *)
-  let q = int_of_string Sys.argv.(2) in
+  let q = 20 in
 
   let rec gaussian_mixture normal_a normal_b () =
     if Random.bool () then
@@ -170,5 +170,6 @@ let _ =
   let err_mixed = sqrt ((sum_se_mixed) /. (float n_mixed)) in
   let err_merged = sqrt ((sum_se_merged) /. (float n_merged)) in
   Printf.printf "err_mixed=%e (n=%d)\nerr_merged=%e (n=%d)\n"
-    err_mixed n_mixed err_merged n_merged
+    err_mixed n_mixed err_merged n_merged;
+  assert (err_mixed <= 5e2 && err_merged <= 5e2)
 
