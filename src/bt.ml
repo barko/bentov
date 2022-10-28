@@ -125,14 +125,13 @@ let _ =
       Arg.(value & opt (some int) None & info ["u"; "uniform"] ~docv:"INT" ~doc)
     in
 
-    Term.(pure main
+    Cmd.v (Cmd.info "bt" ~doc)
+    Term.(const main
           $ max_bins
           $ path
           $ print_histogram
           $ print_mean_stdev
           $ print_uniform
-         ), Term.info "bt" ~doc
+         )
   in
-  match Term.eval ~catch:false command with
-    | `Error _ -> exit 1
-    | _ -> exit 0
+  Cmd.eval ~catch:false command
